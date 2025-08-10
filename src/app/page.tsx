@@ -86,7 +86,11 @@ export default function Home() {
     await refreshSales();
   }
 
-  const totalRows = useMemo(() => rows.length, [rows]);
+  const totalRecords = useMemo(() => rows.length, [rows]);
+  const totalQuantity = useMemo(
+    () => rows.reduce((acc, r) => acc + Number(r.수량 ?? 0), 0),
+    [rows]
+  );
 
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto">
@@ -198,7 +202,7 @@ export default function Home() {
           <section className="border rounded-lg p-4">
             <header className="flex items-center justify-between mb-3">
               <h2 className="font-medium">판매 기록</h2>
-              <div className="text-sm text-gray-500">총 {totalRows}건</div>
+              <div className="text-sm text-gray-500">총 {totalRecords}건 · 총 수량 {totalQuantity}</div>
             </header>
             {rows.length === 0 ? (
               <div className="text-sm text-gray-600">아직 기록이 없습니다.</div>
