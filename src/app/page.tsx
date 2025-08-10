@@ -166,7 +166,7 @@ export default function Home() {
               <div className="text-sm text-gray-600">좌측에서 상품을 등록하세요.</div>
             ) : (
               <div className="space-y-3">
-                {products.map((product, idx) => (
+                {products.map((product) => (
                   <ProductRow
                     key={product.name}
                     product={product}

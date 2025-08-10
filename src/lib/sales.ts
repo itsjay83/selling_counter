@@ -36,16 +36,15 @@ export function loadSales(): SaleRow[] {
   if (!fs.existsSync(CSV_PATH)) return [];
   const raw = fs.readFileSync(CSV_PATH, { encoding: "utf8" });
   const withoutBom = stripBom(raw);
-  const parsed = Papa.parse(withoutBom, {
+  const parsed = Papa.parse<Record<string, unknown>>(withoutBom, {
     header: true,
     skipEmptyLines: true,
   });
   if (parsed.errors && parsed.errors.length > 0) {
     // If parse errors occur, return best-effort rows
-    // eslint-disable-next-line no-console
     console.warn("CSV parse errors:", parsed.errors);
   }
-  const rows = (parsed.data as Papa.ParseResult<unknown>["data"]).map((r: any) => {
+  const rows = parsed.data.map((r) => {
     const row: SaleRow = {
       상품명: String(r["상품명"] ?? "").trim(),
       가격: Number(r["가격"] ?? 0),
