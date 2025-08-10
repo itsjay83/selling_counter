@@ -49,5 +49,5 @@ export async function DELETE() {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-export const preferredRegion = "home";
+export const preferredRegion = "iad1";
 

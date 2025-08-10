@@ -67,7 +67,10 @@ export async function loadSales(): Promise<SaleRow[]> {
   const withoutBom = stripBom(raw);
   const parsed = Papa.parse<Record<string, unknown>>(withoutBom, {
     header: true,
-    skipEmptyLines: true,
+    skipEmptyLines: 'greedy',
+    delimiter: ',',
+    newline: '\n',
+    dynamicTyping: true,
   });
   if (parsed.errors && parsed.errors.length > 0) {
     console.warn("CSV parse errors:", parsed.errors);
@@ -88,7 +91,7 @@ function unparseRows(rows: SaleRow[], includeHeader: boolean): string {
   return Papa.unparse({
     fields: CSV_COLUMNS as unknown as string[],
     data: rows.map((r) => [r.상품명, r.가격, r.수량, r["현금/카드"]]),
-  }, { header: includeHeader });
+  }, { header: includeHeader, delimiter: ',', newline: '\n', quotes: false });
 }
 
 export async function appendSaleRow(row: SaleRow): Promise<void> {
