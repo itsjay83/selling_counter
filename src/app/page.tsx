@@ -28,7 +28,10 @@ export default function Home() {
   }, []);
 
   async function refreshSales() {
-    const res = await fetch("/api/sales", { cache: "no-store" });
+    const res = await fetch(`/api/sales?ts=${Date.now()}` , {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-store" },
+    });
     const data = await res.json();
     setRows(data.rows ?? []);
     setByProduct(data.byProduct ?? []);
@@ -82,7 +85,7 @@ export default function Home() {
   }
 
   async function resetAll() {
-    await fetch("/api/sales", { method: "DELETE" });
+    await fetch("/api/sales", { method: "DELETE", headers: { "Cache-Control": "no-store" } });
     await refreshSales();
   }
 

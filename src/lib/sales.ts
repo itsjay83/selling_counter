@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import Papa from "papaparse";
+import { put, list } from "@vercel/blob";
 
 export type PaymentMethod = "현금" | "카드";
 
@@ -26,6 +27,9 @@ const DATA_DIR = (() => {
 })();
 export const CSV_PATH = path.join(DATA_DIR, "sales.csv");
 
+const USE_BLOB = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+const BLOB_KEY = process.env.SALES_BLOB_KEY || "sales.csv";
+
 export function ensureDataDirExists(): void {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -39,7 +43,24 @@ function stripBom(text: string): string {
   return text;
 }
 
-export function loadSales(): SaleRow[] {
+export async function loadSales(): Promise<SaleRow[]> {
+  // Prefer reading from Blob when available to avoid multi-instance divergence
+  if (USE_BLOB) {
+    try {
+      const { blobs } = await list({ prefix: BLOB_KEY, limit: 1 });
+      const blob = blobs.find((b) => b.pathname === BLOB_KEY) ?? blobs[0];
+      if (blob) {
+        const resp = await fetch(blob.url, { cache: "no-store" });
+        const raw = await resp.text();
+        // Mirror into local tmp for other helpers
+        ensureDataDirExists();
+        fs.writeFileSync(CSV_PATH, raw, { encoding: "utf8" });
+      }
+    } catch {
+      // ignore and fallback to local
+    }
+  }
+
   ensureDataDirExists();
   if (!fs.existsSync(CSV_PATH)) return [];
   const raw = fs.readFileSync(CSV_PATH, { encoding: "utf8" });
@@ -49,7 +70,6 @@ export function loadSales(): SaleRow[] {
     skipEmptyLines: true,
   });
   if (parsed.errors && parsed.errors.length > 0) {
-    // If parse errors occur, return best-effort rows
     console.warn("CSV parse errors:", parsed.errors);
   }
   const rows = parsed.data.map((r) => {
@@ -71,7 +91,9 @@ function unparseRows(rows: SaleRow[], includeHeader: boolean): string {
   }, { header: includeHeader });
 }
 
-export function appendSaleRow(row: SaleRow): void {
+export async function appendSaleRow(row: SaleRow): Promise<void> {
+  // Load latest from blob to avoid overwriting with stale local
+  await loadSales();
   ensureDataDirExists();
   const exists = fs.existsSync(CSV_PATH);
   if (!exists) {
@@ -81,23 +103,51 @@ export function appendSaleRow(row: SaleRow): void {
     const line = unparseRows([row], false) + "\n";
     fs.appendFileSync(CSV_PATH, line, { encoding: "utf8" });
   }
+  if (USE_BLOB) {
+    try {
+      const buf = fs.readFileSync(CSV_PATH);
+      await put(BLOB_KEY, buf, { access: "public", contentType: "text/csv; charset=utf-8" });
+    } catch {}
+  }
 }
 
-export function resetSales(): void {
+export async function resetSales(): Promise<void> {
   ensureDataDirExists();
   if (fs.existsSync(CSV_PATH)) {
     fs.unlinkSync(CSV_PATH);
   }
+  if (USE_BLOB) {
+    // Overwrite blob with empty header so readers see empty set
+    const header = "\ufeff" + (CSV_COLUMNS as unknown as string[]).join(",") + "\n";
+    await put(BLOB_KEY, Buffer.from(header, "utf8"), { access: "public", contentType: "text/csv; charset=utf-8" });
+  }
 }
 
-export function getCsvBuffer(): Buffer {
-  ensureDataDirExists();
-  if (!fs.existsSync(CSV_PATH)) {
-    // Return empty CSV with header
-    const header = "\ufeff" + (CSV_COLUMNS as unknown as string[]).join(",") + "\n";
-    return Buffer.from(header, "utf8");
+export async function getCsvBuffer(): Promise<Buffer> {
+  // Prefer blob content when available
+  if (USE_BLOB) {
+    try {
+      const { blobs } = await list({ prefix: BLOB_KEY, limit: 1 });
+      const blob = blobs.find((b) => b.pathname === BLOB_KEY) ?? blobs[0];
+      if (blob) {
+        const resp = await fetch(blob.url, { cache: "no-store" });
+        const ab = await resp.arrayBuffer();
+        const buf = Buffer.from(ab);
+        // Mirror locally
+        ensureDataDirExists();
+        fs.writeFileSync(CSV_PATH, buf);
+        return buf;
+      }
+    } catch {
+      // ignore
+    }
   }
-  return fs.readFileSync(CSV_PATH);
+  ensureDataDirExists();
+  if (fs.existsSync(CSV_PATH)) {
+    return fs.readFileSync(CSV_PATH);
+  }
+  const header = "\ufeff" + (CSV_COLUMNS as unknown as string[]).join(",") + "\n";
+  return Buffer.from(header, "utf8");
 }
 
 export function getAggregates(rows: SaleRow[]): {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCsvBuffer } from "@/lib/sales";
 
 export async function GET() {
-  const buf = getCsvBuffer();
+  const buf = await getCsvBuffer();
   const data = new Uint8Array(buf);
   return new NextResponse(data, {
     headers: {

@@ -2,16 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   appendSaleRow,
   getAggregates,
-  getCsvBuffer,
+  type PaymentMethod,
   loadSales,
   resetSales,
-  type PaymentMethod,
 } from "@/lib/sales";
 
 export async function GET() {
-  const rows = loadSales();
+  const rows = await loadSales();
   const { byProduct, byPayment } = getAggregates(rows);
-  return NextResponse.json({ rows, byProduct, byPayment });
+  return NextResponse.json(
+    { rows, byProduct, byPayment },
+    { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } }
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -27,28 +29,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  appendSaleRow({
+  await appendSaleRow({
     상품명: productName,
     가격: Math.trunc(price),
     수량: Math.trunc(quantity),
     "현금/카드": paymentMethod as PaymentMethod,
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function DELETE() {
-  resetSales();
-  return NextResponse.json({ ok: true });
+  await resetSales();
+  return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
 }
 
-export async function HEAD() {
-  // For quick existence check
-  const buf = getCsvBuffer();
-  return new NextResponse(null, { headers: { "x-size": String(buf.byteLength) } });
-}
+// no extra exports
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const preferredRegion = "home";
 
