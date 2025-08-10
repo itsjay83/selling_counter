@@ -48,3 +48,7 @@ export async function HEAD() {
   return new NextResponse(null, { headers: { "x-size": String(buf.byteLength) } });
 }
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+

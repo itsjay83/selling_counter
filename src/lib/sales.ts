@@ -15,7 +15,15 @@ export type SaleRow = {
 };
 
 const PROJECT_ROOT = process.cwd();
-const DATA_DIR = path.join(PROJECT_ROOT, "data");
+const DATA_DIR = (() => {
+  const envDir = process.env.SALES_DATA_DIR;
+  if (envDir && envDir.trim().length > 0) return path.resolve(envDir);
+  // Vercel serverless has read-only FS except for /tmp
+  if (process.env.VERCEL === "1" || process.env.VERCEL === "true") {
+    return "/tmp/selling_counter_data";
+  }
+  return path.join(PROJECT_ROOT, "data");
+})();
 export const CSV_PATH = path.join(DATA_DIR, "sales.csv");
 
 export function ensureDataDirExists(): void {

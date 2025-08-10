@@ -56,17 +56,26 @@ export default function Home() {
   }
 
   async function recordSale(product: Product, quantity: number) {
-    await fetch("/api/sales", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        productName: product.name,
-        price: product.price,
-        quantity,
-        paymentMethod,
-      }),
-    });
-    await refreshSales();
+    try {
+      const res = await fetch("/api/sales", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productName: product.name,
+          price: product.price,
+          quantity,
+          paymentMethod,
+        }),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        alert(`기록 실패: ${res.status} ${msg}`);
+        return;
+      }
+      await refreshSales();
+    } catch (e) {
+      alert(`기록 중 오류가 발생했습니다.`);
+    }
   }
 
   async function resetAll() {
