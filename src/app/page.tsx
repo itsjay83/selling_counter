@@ -21,6 +21,7 @@ export default function Home() {
   const [rows, setRows] = useState<SaleRow[]>([]);
   const [byProduct, setByProduct] = useState<Array<{ 상품명: string; 수량: number; 가격: number }>>([]);
   const [byPayment, setByPayment] = useState<Array<{ "현금/카드": string; 수량: number }>>([]);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     refreshSales();
@@ -73,6 +74,8 @@ export default function Home() {
         return;
       }
       await refreshSales();
+      setSuccessMessage(`기록됨: ${product.name} x${quantity} (${paymentMethod})`);
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (e) {
       alert(`기록 중 오류가 발생했습니다.`);
     }
@@ -96,6 +99,11 @@ export default function Home() {
         </div>
       </header>
 
+      {successMessage && (
+        <div className="mb-4 rounded border border-green-300 bg-green-50 text-green-800 px-3 py-2 text-sm">
+          {successMessage}
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <aside className="md:col-span-1 space-y-6">
           <section className="border rounded-lg p-4">
@@ -190,7 +198,7 @@ export default function Home() {
           <section className="border rounded-lg p-4">
             <header className="flex items-center justify-between mb-3">
               <h2 className="font-medium">판매 기록</h2>
-              <div className="text-sm text-gray-500">최근 {totalRows}건</div>
+              <div className="text-sm text-gray-500">총 {totalRows}건</div>
             </header>
             {rows.length === 0 ? (
               <div className="text-sm text-gray-600">아직 기록이 없습니다.</div>
@@ -206,7 +214,7 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.slice(-50).map((r, i) => (
+                    {rows.map((r, i) => (
                       <tr key={i} className="border-b last:border-0">
                         <td className="py-2">{r.상품명}</td>
                         <td className="py-2">{Number(r.가격).toLocaleString()}원</td>
