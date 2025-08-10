@@ -207,25 +207,33 @@ export default function Home() {
             {rows.length === 0 ? (
               <div className="text-sm text-gray-600">아직 기록이 없습니다.</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm border-collapse">
+              <div className="overflow-x-auto max-h-[60vh] overflow-y-auto border rounded">
+                <table className="w-full text-sm table-auto">
                   <thead>
                     <tr className="text-left border-b">
-                      <th className="py-2">상품명</th>
-                      <th className="py-2">가격</th>
-                      <th className="py-2">수량</th>
-                      <th className="py-2">현금/카드</th>
+                      <th className="py-2 px-2 w-12 text-center sticky top-0 bg-background z-10">#</th>
+                      <th className="py-2 px-2 sticky top-0 bg-background z-10">상품명</th>
+                      <th className="py-2 px-2 text-right sticky top-0 bg-background z-10">가격</th>
+                      <th className="py-2 px-2 text-right sticky top-0 bg-background z-10">수량</th>
+                      <th className="py-2 px-2 text-center sticky top-0 bg-background z-10">현금/카드</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((r, i) => (
-                      <tr key={i} className="border-b last:border-0">
-                        <td className="py-2">{r.상품명}</td>
-                        <td className="py-2">{Number(r.가격).toLocaleString()}원</td>
-                        <td className="py-2">{r.수량}</td>
-                        <td className="py-2">{r["현금/카드"]}</td>
-                      </tr>
-                    ))}
+                    {[...rows]
+                      .slice()
+                      .reverse()
+                      .map((r, i) => {
+                        const seq = rows.length - i;
+                        return (
+                          <tr key={`${r.상품명}-${i}`} className="border-b last:border-0 odd:bg-black/[.02] dark:odd:bg-white/[.04]">
+                            <td className="py-2 px-2 text-center">{seq}</td>
+                            <td className="py-2 px-2">{r.상품명}</td>
+                            <td className="py-2 px-2 text-right">{Number(r.가격).toLocaleString()}원</td>
+                            <td className="py-2 px-2 text-right">{r.수량}</td>
+                            <td className="py-2 px-2 text-center">{r["현금/카드"]}</td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
